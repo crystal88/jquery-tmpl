@@ -37,6 +37,65 @@ jQuery.tmpl.tag.syntax_error = { open: "throw SyntaxError('test syntax error');"
 jQuery.tmpl.tag.reference_error = { open: "throw ReferenceError('test reference error');" };
 jQuery.tmpl.tag.type_error = { open: "throw TypeError('test type error');" };
 
+module("Bindable");
+
+	test("Testing Primitive wraps", function() {
+		var data = {
+			key1: 'val1',
+			key2: 'val2',
+			checkObject: {
+				key1: 'object/key1'
+			}
+		};
+		$.bindable( data );
+		test_handler("key1 is function", $.isFunction(data.key1), true);
+		test_handler("key1() returns 'val1'", data.key1(), 'val1');
+		test_handler("key2 is function", $.isFunction(data.key2), true);
+		test_handler("key2() returns 'val2'", data.key2(), 'val2');
+		
+		test_handler("checkObject is function", $.isFunction(data.checkObject), true);
+		test_handler("checkObject().key1 is function", $.isFunction(data.checkObject().key1), true);
+		test_handler("checkObject().key1() returns 'object/key1", data.checkObject().key1(), 'object/key1');
+		
+		data.key1('changed');
+		test_handler("check data change", data.key1(), 'changed');
+		
+		data.key1({
+				subkey: 'subval'
+		});
+		test_handler("check bindable packaging on setting object", $.isFunction(data.key1().subkey), true)
+	});
+	
+	test("Testing event handlers", function() {
+		var data = {
+			key1: 'val',
+			key2: {
+				key2_1 : 'val2_1'
+			}
+		}
+		$.bindable( data );
+		
+		var _newVal, _oldVal;
+		var valSaver = function (newVal, oldVal) {
+			_newVal = newVal;
+			_oldVal = oldVal;
+		};
+		data.key1.onChange = valSaver;
+		data.key1('val changed');
+		test_handler("testing onChange newVal", _newVal, 'val changed');
+		test_handler("testing onChange oldVal", _oldVal, 'val');
+		
+		data.key2().key2_1.onChange = valSaver;
+		data.key2().key2_1('val2_1 changed');
+		test_handler("testing inner onChange newVal", _newVal, 'val2_1 changed');
+		test_handler("testing inner onChange oldVal", _oldVal, 'val2_1');
+		
+		data.key2.onChange = valSaver;
+		data.key2('val2');
+		test_handler("testing object change newVal", _newVal, 'val2');
+		test_handler("testing object change oldVal", _oldVal, {key2_1: 'val2_1 changed'});
+	});
+
 module("Basics");
 
 

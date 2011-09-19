@@ -114,6 +114,46 @@
 	});
 
 	jQuery.extend({
+		bindable: function( data ) {
+			for ( var prop in data ) {
+				
+				var value = data[ prop ];
+				
+				data[ prop ] = (function(value, prop) {
+					
+					// binding recursively
+					if ( $.isPlainObject( value ) ) {
+						$.bindable( value );
+					}
+					
+					return function() {
+						if (arguments.length === 0) { // getter
+							return value;
+						} else { // setter
+							var oldVal = value;
+							value = arguments[ 0 ];
+							
+							if ( $.isFunction( data[ prop ].onChange ) ) {
+								data[ prop ].onChange( value, $.unbindable(oldVal) );
+							}
+							if ( $.isPlainObject( value ) ) {
+								$.bindable( value );
+							}
+						}
+					};
+				})(value, prop);
+			}
+			return data;
+		},
+		// removes the packaging functions added by $.bindable
+		unbindable: function(data) {
+			for ( var prop in data ) {
+				if ( $.isFunction(data[ prop ]) ) {
+					data[ prop ] = data[ prop ]();
+				}
+			}
+			return data;
+		},				
 		// Return wrapped set of template items, obtained by rendering template against data.
 		tmpl: function( tmpl, data, options, parentItem ) {
 			var ret, topLevel = !parentItem;
@@ -326,7 +366,7 @@
 				.replace( /([\\'])/g, "\\$1" )
 				.replace( /[\r\t\n]/g, " " )
 				.replace( /\$\{([^\}]*)\}/g, "{{= $1}}" )
-				.replace( /\{\{(\/?)(\w+|.)(?:\(((?:[^\}]|\}(?!\}))*?)?\))?(?:\s+(.*?)?)?(\(((?:[^\}]|\}(?!\}))*?)\))?\s*\}\}/g,
+				.replace( /\{\{(\/?)([a-z\:]+|.)(?:\(((?:[^\}]|\}(?!\}))*?)?\))?(?:\s+(.*?)?)?(\(((?:[^\}]|\}(?!\}))*?)\))?\s*\}\}/g,
 				function( all, slash, type, fnargs, target, parens, args ) {
 					var tag = jQuery.tmpl.tag[ type ], def, expr, exprAutoFnDetect;
 					if ( !tag ) {
